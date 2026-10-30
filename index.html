@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1118">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Railiberia — Gestión ferroviaria</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%230b1118' width='64' height='64' rx='12'/%3E%3Cpath fill='%23e8b923' d='M12 40h40v6H12zm4-8h8v8h-8zm12 0h8v8h-8zm12 0h8v8h-8z'/%3E%3Cpath fill='%23e8eef5' d='M18 22h28l4 10H14z'/%3E%3Ccircle fill='%23e8b923' cx='22' cy='46' r='4'/%3E%3Ccircle fill='%23e8b923' cx='42' cy='46' r='4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b1118;--panel:#121a26;--panel2:#1a2434;--panel3:#223044;
+  --accent:#e8b923;--accent2:#f0d060;--green:#2ecc71;--red:#e74c3c;--blue:#3d9cf0;
+  --text:#e8eef5;--muted:#7a8fa3;--border:#2a3a4f;--shadow:rgba(0,0,0,.45);
+  --hud-bg:rgba(12,18,28,.92);--map-land:#122030;--map-sea:#081018;
+}
+html.day{
+  --bg:#eef2f6;--panel:#ffffff;--panel2:#f4f7fb;--panel3:#e8eef5;
+  --accent:#c49200;--accent2:#d4a820;--green:#1a9c4a;--red:#c0392b;--blue:#2563eb;
+  --text:#1a2332;--muted:#5a6a7a;--border:#c8d4e0;--shadow:rgba(0,0,0,.12);
+  --hud-bg:rgba(255,255,255,.94);--map-land:#d4e0cc;--map-sea:#a8c4d8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);transition:background .6s,color .6s}
+#topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;background:var(--panel);border-bottom:1px solid var(--border);gap:10px;position:relative;z-index:50;transition:background .6s,border-color .6s}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-icon{width:32px;height:32px;flex-shrink:0}
+.brand-name{font-weight:800;font-size:1.15rem;color:var(--accent);letter-spacing:-.3px;white-space:nowrap}
+.brand-sub{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:-2px}
+.top-center{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:center}
+.nav-btn{background:transparent;border:1px solid transparent;color:var(--muted);padding:6px 10px;border-radius:8px;cursor:pointer;font-size:.8rem;display:inline-flex;align-items:center;gap:5px;transition:.15s}
+.nav-btn:hover,.nav-btn.active{background:var(--panel2);color:var(--text);border-color:var(--border)}
+.nav-btn.active{color:var(--accent)}
+.nav-btn svg{width:15px;height:15px;flex-shrink:0}
+.top-right{display:flex;align-items:center;gap:12px}
+.stat-chip{text-align:right;line-height:1.15}
+.stat-chip .lbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.stat-chip .val{font-size:1.02rem;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-chip .val.money{color:var(--green)}
+.speed-group{display:flex;gap:2px;background:var(--panel2);border-radius:8px;padding:2px;border:1px solid var(--border)}
+.speed-group button{background:transparent;border:none;color:var(--muted);padding:4px 7px;border-radius:6px;cursor:pointer;font-size:.7rem;font-weight:700}
+.speed-group button.active{background:var(--accent);color:#1a1500}
+#layout{display:grid;grid-template-columns:1fr 380px;height:calc(100% - 52px)}
+#map-wrap{position:relative;overflow:hidden;background:var(--map-sea);transition:background .6s}
+#mapCanvas{width:100%;height:100%;display:block}
+#hud-float{position:absolute;top:12px;left:12px;max-width:min(320px,calc(100% - 24px));background:var(--hud-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:.82rem;backdrop-filter:blur(12px);box-shadow:0 8px 28px var(--shadow);max-height:42vh;overflow-y:auto;transition:background .6s,border-color .6s}
+#side{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:14px 14px 24px;transition:background .6s,border-color .6s}
+.sec{margin-bottom:18px}
+.sec-title{font-size:.66rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.sec-title svg{width:13px;height:13px;opacity:.7}
+.card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:7px;transition:background .6s,border-color .6s}
+.card-t{font-weight:600;font-size:.9rem;margin-bottom:2px}
+.card-m{font-size:.76rem;color:var(--muted)}
+.tag{display:inline-block;font-size:.64rem;padding:2px 6px;border-radius:5px;font-weight:600;margin:1px 2px 1px 0}
+.tag-d{background:#1a3a5c;color:#5dade2} html.day .tag-d{background:#d6e8f8;color:#1a5a8a}
+.tag-c{background:#1a3a2a;color:#58d68d} html.day .tag-c{background:#d4f0e0;color:#1a6a3a}
+.tag-s{background:#3a2a1a;color:#f5b041} html.day .tag-s{background:#f5ebd0;color:#8a6010}
+.tag-ave{background:#3a3010;color:var(--accent)} html.day .tag-ave{background:#f5ecd0;color:#8a6800}
+.tag-std{background:#1a2a3a;color:#7ec8e3} html.day .tag-std{background:#d8eaf5;color:#2a6080}
+.tag-ev{background:#3a1a2a;color:#f08aa0} html.day .tag-ev{background:#f5d8e0;color:#a03050}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--accent);color:#1a1500;font-weight:700;border:none;border-radius:8px;padding:9px 15px;font-size:.86rem;cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 10px;font-size:.76rem;border-radius:7px}
+.btn-block{width:100%}
+.btn svg{width:14px;height:14px}
+.frm{margin-bottom:8px}
+.frm label{display:block;font-size:.74rem;color:var(--muted);margin-bottom:3px}
+select,input[type=number],input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:.86rem;transition:background .6s,border-color .6s,color .6s}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.alert{padding:9px 12px;border-radius:8px;margin-bottom:8px;font-size:.8rem;line-height:1.4}
+.alert-i{background:rgba(61,156,240,.12);border:1px solid rgba(61,156,240,.3);color:var(--blue)}
+.alert-s{background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green)}
+.alert-w{background:rgba(232,185,35,.12);border:1px solid rgba(232,185,35,.35);color:var(--accent)}
+.alert-d{background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);color:var(--red)}
+.flex{display:flex;gap:7px;align-items:center}
+.flex-b{display:flex;justify-content:space-between;align-items:center}
+.flex-w{flex-wrap:wrap}
+.mt6{margin-top:6px}.mt8{margin-top:8px}.mb8{margin-bottom:8px}
+.t-sm{font-size:.78rem}.t-xs{font-size:.7rem}.t-mut{color:var(--muted)}
+.t-g{color:var(--green)}.t-r{color:var(--red)}.t-a{color:var(--accent)}
+.hidden{display:none!important}
+.badge{display:inline-block;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 6px;font-size:.68rem;color:var(--muted)}
+.bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .35s linear}
+.pax-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:5px}
+.pax-bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),#6bb0f5);border-radius:3px}
+#toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(420px,92vw)}
+.toast{background:var(--hud-bg);border:1px solid var(--border);border-radius:10px;padding:12px 16px;box-shadow:0 8px 28px var(--shadow);font-size:.84rem;pointer-events:auto;animation:toastIn .35s ease;max-width:100%}
+.toast.out{animation:toastOut .3s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(8px)}}
+.set-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.set-row label{font-size:.88rem}
+.toggle{width:44px;height:24px;background:var(--panel3);border-radius:12px;position:relative;cursor:pointer;border:1px solid var(--border);transition:.2s}
+.toggle.on{background:var(--accent);border-color:var(--accent)}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle.on::after{left:22px}
+@media(max-width:820px){
+  #layout{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  #side{height:42vh;border-left:none;border-top:1px solid var(--border)}
+  #map-wrap{height:calc(58vh - 52px)}
+  .brand-sub{display:none}
+  .nav-btn span{display:none}
+  .top-right .stat-chip:nth-child(3){display:none}
+}
+@media(max-width:480px){
+  #topbar{padding:0 8px;height:48px}
+  .brand-name{font-size:1rem}
+  .speed-group{display:none}
+  .nav-btn{padding:6px 8px}
+}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="12" fill="var(--panel2)"/><path d="M10 38h44v7H10z" fill="var(--accent)"/><path d="M16 22h32l5 12H11z" fill="var(--text)"/><circle cx="22" cy="45" r="5" fill="var(--accent)"/><circle cx="42" cy="45" r="5" fill="var(--accent)"/><rect x="20" y="26" width="6" height="5" rx="1" fill="var(--panel)"/><rect x="29" y="26" width="6" height="5" rx="1" fill="var(--panel)"/><rect x="38" y="26" width="6" height="5" rx="1" fill="var(--panel)"/></svg>
+    <div><div class="brand-name">Railiberia</div><div class="brand-sub">Gestión ferroviaria</div></div>
+  </div>
+  <div class="top-center" id="nav">
+    <button class="nav-btn active" data-tab="ops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg><span>Operaciones</span></button>
+    <button class="nav-btn" data-tab="fleet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="8" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M5 10V7l4-3h6l4 3v3"/></svg><span>Flota</span></button>
+    <button class="nav-btn" data-tab="staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Personal</span></button>
+    <button class="nav-btn" data-tab="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Finanzas</span></button>
+    <button class="nav-btn" data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Eventos</span></button>
+    <button class="nav-btn" data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Stats</span></button>
+    <button class="nav-btn" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Ajustes</span></button>
+  </div>
+  <div class="top-right">
+    <div class="speed-group" id="speedGroup">
+      <button data-speed="1" class="active">1×</button>
+      <button data-speed="10">10×</button>
+      <button data-speed="60">60×</button>
+      <button data-speed="300">300×</button>
+    </div>
+    <div class="stat-chip"><div class="lbl">Reloj</div><div class="val" id="gameClock">08:00</div></div>
+    <div class="stat-chip"><div class="lbl">Caja</div><div class="val money" id="moneyDisplay">€ 0</div></div>
+    <div class="stat-chip"><div class="lbl">Flota / Staff</div><div class="val" id="countsDisplay">0 / 0</div></div>
+  </div>
+</div>
+<div id="layout">
+  <div id="map-wrap">
+    <canvas id="mapCanvas"></canvas>
+    <div id="hud-float"><div class="t-mut t-sm">Red ferroviaria · Península ibérica</div></div>
+  </div>
+  <div id="side">
+    <div id="tab-ops">
+      <div class="sec">
+        <div class="sec-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Programar viaje</div>
+        <div class="grid2">
+          <div class="frm"><label>Origen</label><select id="selOrigin"></select></div>
+          <div class="frm"><label>Destino</label><select id="selDest"></select></div>
+        </div>
+        <div class="frm"><label>Tren libre</label><select id="selTrain"></select></div>
+        <div class="grid2">
+          <div class="frm"><label>Precio billete (€)</label><input type="number" id="inpPrice" value="38" min="8" max="280"></div>
+          <div class="frm"><label>Salida (HH:MM)</label><input type="text" id="inpDepart" value="08:30"></div>
+        </div>
+        <div id="routeInfo" class="alert alert-i hidden"></div>
+        <button class="btn btn-block mt6" id="btnSchedule">Programar viaje</button>
+      </div>
+      <div class="sec">
+        <div class="sec-title">Viajes</div>
+        <div class="flex flex-w mb8" style="gap:5px">
+          <button class="btn btn-sm btn-ghost filter-trip active" data-filter="all">Todos</button>
+          <button class="btn btn-sm btn-ghost filter-trip" data-filter="running">En ruta</button>
+          <button class="btn btn-sm btn-ghost filter-trip" data-filter="scheduled">Prog.</button>
+          <button class="btn btn-sm btn-ghost filter-trip" data-filter="arrived">Hechos</button>
+        </div>
+        <div id="tripsList"></div>
+      </div>
+    </div>
+    <div id="tab-fleet" class="hidden">
+      <div class="sec"><div class="sec-title">Comprar material</div><div id="shopList"></div></div>
+      <div class="sec"><div class="sec-title">Tu flota (<span id="fleetCount">0</span>)</div><div id="fleetList"></div></div>
+    </div>
+    <div id="tab-staff" class="hidden">
+      <div class="sec">
+        <div class="sec-title">Contratar</div>
+        <div class="flex flex-w mb8">
+          <button class="btn btn-sm" id="btnHireDriver">+ Conductor</button>
+          <button class="btn btn-sm btn-ghost" id="btnHireCabin">+ A bordo</button>
+        </div>
+        <div id="hireMsg"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">Plantilla (<span id="staffCount">0</span>)</div>
+        <div class="flex flex-w mb8" style="gap:5px">
+          <button class="btn btn-sm btn-ghost filter-staff active" data-role="all">Todos</button>
+          <button class="btn btn-sm btn-ghost filter-staff" data-role="conductor">Conductores</button>
+          <button class="btn btn-sm btn-ghost filter-staff" data-role="cabina">A bordo</button>
+        </div>
+        <div id="staffList"></div>
+      </div>
+    </div>
+    <div id="tab-finance" class="hidden">
+      <div class="sec">
+        <div class="sec-title">Resumen</div>
+        <div class="card">
+          <div class="flex-b"><span>Ingresos billetes</span><span class="t-g" id="finIncome">€ 0</span></div>
+          <div class="flex-b mt8"><span>Inversión flota</span><span class="t-r" id="finTrains">€ 0</span></div>
+          <div class="flex-b mt8"><span>Salarios / mes</span><span class="t-r" id="finSalaries">€ 0</span></div>
+          <div class="flex-b mt8"><span>Mantenimiento / mes</span><span class="t-r" id="finMaint">€ 0</span></div>
+          <div class="flex-b mt8"><span>Coste eventos</span><span class="t-r" id="finEvents">€ 0</span></div>
+          <div class="flex-b mt8" style="border-top:1px solid var(--border);padding-top:8px"><strong>Balance</strong><strong id="finNet">€ 0</strong></div>
+        </div>
+      </div>
+      <div class="sec"><div class="sec-title">Movimientos</div><div id="txList"></div></div>
+    </div>
+    <div id="tab-events" class="hidden">
+      <div class="sec"><div class="sec-title">Eventos activos</div><div id="activeEvents"><div class="t-mut t-sm">Sin eventos. El sistema genera retrasos, averías y mantenimiento.</div></div></div>
+      <div class="sec"><div class="sec-title">Historial</div><div id="eventLog"></div></div>
+    </div>
+    <div id="tab-stats" class="hidden">
+      <div class="sec">
+        <div class="sec-title">Rendimiento</div>
+        <div class="card">
+          <div class="flex-b"><span>Viajes completados</span><strong id="stTrips">0</strong></div>
+          <div class="flex-b mt8"><span>Pasajeros</span><strong id="stPax">0</strong></div>
+          <div class="flex-b mt8"><span>Km recorridos</span><strong id="stKm">0</strong></div>
+          <div class="flex-b mt8"><span>Ingreso medio</span><strong id="stAvg">€ 0</strong></div>
+          <div class="flex-b mt8"><span>Ocupación media</span><strong id="stOcc">0%</strong></div>
+          <div class="flex-b mt8"><span>Eventos sufridos</span><strong id="stEvents">0</strong></div>
+        </div>
+      </div>
+      <div class="sec"><div class="sec-title">Rutas top</div><div id="topRoutes"></div></div>
+    </div>
+    <div id="tab-settings" class="hidden">
+      <div class="sec">
+        <div class="sec-title">Pantalla y visual</div>
+        <div class="card">
+          <div class="set-row"><label>Pantalla completa</label><button class="btn btn-sm btn-ghost" id="btnFullscreen">Activar</button></div>
+          <div class="set-row"><label>Ciclo día / noche automático</label><div class="toggle on" id="togDayNight" data-on="1"></div></div>
+          <div class="set-row"><label>Forzar tema</label>
+            <select id="selTheme" style="width:auto;min-width:120px"><option value="auto">Automático</option><option value="night">Noche</option><option value="day">Día</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">Simulación</div>
+        <div class="card">
+          <div class="set-row"><label>Eventos aleatorios</label><div class="toggle on" id="togEvents" data-on="1"></div></div>
+          <div class="set-row"><label>Frecuencia eventos</label>
+            <select id="selEventRate" style="width:auto;min-width:120px"><option value="low">Baja</option><option value="med" selected>Media</option><option value="high">Alta</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">Datos</div>
+        <div class="card">
+          <div class="set-row"><label>Instalar como app (PWA)</label><button class="btn btn-sm btn-ghost" id="btnInstall">Instalar</button></div>
+          <div class="set-row"><label>Reiniciar partida</label><button class="btn btn-sm" style="background:var(--red);color:#fff" id="btnReset">Reiniciar</button></div>
+        </div>
+      </div>
+      <div class="t-xs t-mut mt8">Railiberia v1.0 · Simulador ferroviario peninsular</div>
+    </div>
+  </div>
+</div>
+<div id="toasts"></div>
+<script>
+
+const CITIES={
+  "Madrid":{x:.475,y:.455,hub:true},"Barcelona":{x:.82,y:.285},"Valencia":{x:.715,y:.51},
+  "Sevilla":{x:.30,y:.70},"Málaga":{x:.40,y:.80},"Zaragoza":{x:.615,y:.295},
+  "Bilbao":{x:.50,y:.105},"A Coruña":{x:.105,y:.105},"Santiago":{x:.125,y:.165},
+  "Vigo":{x:.11,y:.245},"León":{x:.31,y:.205},"Burgos":{x:.41,y:.22},
+  "Valladolid":{x:.365,y:.325},"Salamanca":{x:.285,y:.40},"Toledo":{x:.45,y:.52},
+  "Córdoba":{x:.385,y:.66},"Granada":{x:.485,y:.745},"Alicante":{x:.69,y:.625},
+  "Murcia":{x:.665,y:.685},"Castellón":{x:.73,y:.445},"Tarragona":{x:.775,y:.36},
+  "Girona":{x:.855,y:.24},"Pamplona":{x:.585,y:.165},"San Sebastián":{x:.58,y:.085},
+  "Santander":{x:.445,y:.085},"Gijón":{x:.325,y:.07},"Cáceres":{x:.265,y:.50},
+  "Mérida":{x:.265,y:.56},"Huelva":{x:.225,y:.725},"Cádiz":{x:.265,y:.785},
+  "Almería":{x:.565,y:.785},"Cuenca":{x:.57,y:.485},"Segovia":{x:.43,y:.38},
+  "Ávila":{x:.39,y:.40},"Logroño":{x:.525,y:.20},"Huesca":{x:.65,y:.225},
+  "Ronda":{x:.345,y:.76},"Albacete":{x:.59,y:.56},"Badajoz":{x:.205,y:.54},
+  "Jaén":{x:.46,y:.70},"Lleida":{x:.72,y:.30},"Ourense":{x:.16,y:.24}
+};
+const SPAIN_OUTLINE=[[0.08,0.08],[0.18,0.04],[0.28,0.03],[0.38,0.025],[0.48,0.03],[0.55,0.025],[0.62,0.04],[0.68,0.06],[0.74,0.09],[0.80,0.14],[0.86,0.18],[0.90,0.24],[0.93,0.30],[0.95,0.36],[0.96,0.42],[0.95,0.48],[0.93,0.54],[0.90,0.60],[0.86,0.66],[0.82,0.72],[0.76,0.78],[0.70,0.84],[0.64,0.88],[0.58,0.91],[0.52,0.93],[0.46,0.94],[0.40,0.94],[0.34,0.93],[0.28,0.90],[0.22,0.86],[0.17,0.80],[0.13,0.74],[0.10,0.68],[0.08,0.60],[0.07,0.52],[0.06,0.44],[0.06,0.36],[0.06,0.28],[0.07,0.20],[0.08,0.14],[0.08,0.08]];
+const PORTUGAL_CUT=[[0.06,0.28],[0.12,0.28],[0.14,0.35],[0.15,0.42],[0.14,0.50],[0.13,0.58],[0.12,0.64],[0.10,0.68],[0.08,0.60],[0.07,0.52],[0.06,0.44],[0.06,0.36],[0.06,0.28]];
+const ROUTES={
+  "Madrid-Barcelona":{km:621,type:"AVE",path:["Madrid","Zaragoza","Lleida","Tarragona","Barcelona"]},
+  "Madrid-Valencia":{km:351,type:"AVE",path:["Madrid","Cuenca","Valencia"]},
+  "Madrid-Sevilla":{km:471,type:"AVE",path:["Madrid","Córdoba","Sevilla"]},
+  "Madrid-Málaga":{km:513,type:"AVE",path:["Madrid","Córdoba","Málaga"]},
+  "Madrid-Zaragoza":{km:307,type:"AVE",path:["Madrid","Zaragoza"]},
+  "Madrid-Córdoba":{km:345,type:"AVE",path:["Madrid","Córdoba"]},
+  "Madrid-Granada":{km:421,type:"AVE",path:["Madrid","Córdoba","Granada"]},
+  "Madrid-Toledo":{km:74,type:"AVE",path:["Madrid","Toledo"]},
+  "Madrid-Valladolid":{km:179,type:"AVE",path:["Madrid","Segovia","Valladolid"]},
+  "Madrid-León":{km:345,type:"estándar",path:["Madrid","Valladolid","León"]},
+  "Madrid-A Coruña":{km:595,type:"estándar",path:["Madrid","Valladolid","León","Ourense","Santiago","A Coruña"]},
+  "Madrid-Bilbao":{km:402,type:"estándar",path:["Madrid","Burgos","Bilbao"]},
+  "Madrid-Salamanca":{km:212,type:"estándar",path:["Madrid","Ávila","Salamanca"]},
+  "Madrid-Badajoz":{km:401,type:"estándar",path:["Madrid","Cáceres","Mérida","Badajoz"]},
+  "Madrid-Alicante":{km:412,type:"AVE",path:["Madrid","Albacete","Alicante"]},
+  "Madrid-Murcia":{km:440,type:"estándar",path:["Madrid","Albacete","Murcia"]},
+  "Barcelona-Valencia":{km:349,type:"estándar",path:["Barcelona","Tarragona","Castellón","Valencia"]},
+  "Barcelona-Zaragoza":{km:296,type:"AVE",path:["Barcelona","Tarragona","Lleida","Zaragoza"]},
+  "Barcelona-Girona":{km:100,type:"AVE",path:["Barcelona","Girona"]},
+  "Sevilla-Málaga":{km:210,type:"estándar",path:["Sevilla","Ronda","Málaga"]},
+  "Sevilla-Córdoba":{km:138,type:"AVE",path:["Sevilla","Córdoba"]},
+  "Sevilla-Cádiz":{km:135,type:"estándar",path:["Sevilla","Cádiz"]},
+  "Sevilla-Huelva":{km:92,type:"estándar",path:["Sevilla","Huelva"]},
+  "Valencia-Alicante":{km:166,type:"estándar",path:["Valencia","Alicante"]},
+  "Valencia-Castellón":{km:70,type:"estándar",path:["Valencia","Castellón"]},
+  "Zaragoza-Bilbao":{km:275,type:"estándar",path:["Zaragoza","Logroño","Bilbao"]},
+  "Zaragoza-Pamplona":{km:178,type:"estándar",path:["Zaragoza","Pamplona"]},
+  "Bilbao-San Sebastián":{km:100,type:"estándar",path:["Bilbao","San Sebastián"]},
+  "Bilbao-Santander":{km:100,type:"estándar",path:["Bilbao","Santander"]},
+  "A Coruña-Vigo":{km:160,type:"estándar",path:["A Coruña","Santiago","Vigo"]},
+  "A Coruña-Santiago":{km:65,type:"estándar",path:["A Coruña","Santiago"]},
+  "Córdoba-Granada":{km:160,type:"estándar",path:["Córdoba","Granada"]},
+  "Málaga-Granada":{km:125,type:"estándar",path:["Málaga","Granada"]},
+  "Málaga-Almería":{km:210,type:"estándar",path:["Málaga","Almería"]}
+};
+const TRAIN_TYPES=[
+  {id:"regional",name:"Regional",price:420000,capacity:180,speed:140,maint:1800},
+  {id:"intercity",name:"Intercity",price:780000,capacity:280,speed:200,maint:3200},
+  {id:"ave",name:"AVE",price:1450000,capacity:360,speed:300,maint:5500},
+  {id:"ave-plus",name:"AVE Premium",price:2100000,capacity:420,speed:320,maint:7200}
+];
+const NOMBRES=["Antonio","José","Manuel","Francisco","Juan","David","Carlos","Miguel","Rafael","Pedro","Ángel","Alejandro","Pablo","Luis","Sergio","Javier","Fernando","Jorge","Daniel","Alberto","Diego","Rubén","Iván","Óscar","Víctor","María","Carmen","Ana","Laura","Isabel","Marta","Cristina","Elena","Sara","Patricia","Lucía","Paula","Andrea","Beatriz","Rosa","Teresa","Pilar","Natalia","Silvia","Raquel","Nuria","Claudia","Irene","Sonia","Eva"];
+const APELLIDOS=["García","Rodríguez","González","Fernández","López","Martínez","Sánchez","Pérez","Gómez","Martín","Jiménez","Ruiz","Hernández","Díaz","Moreno","Álvarez","Muñoz","Romero","Alonso","Gutiérrez","Navarro","Torres","Domínguez","Vázquez","Ramos","Gil","Ramírez","Serrano","Blanco","Molina","Morales","Suárez","Ortega","Delgado","Castro","Ortiz","Rubio","Marín","Sanz","Iglesias","Cortés","Castillo","Guerrero","Lozano","Cano"];
+const DRIVER_SKILLS=["Conducción AVE","Conducción Regional","Seguridad ferroviaria","Mecánica básica","Gestión de emergencias","Idiomas (EN)","Idiomas (FR)","Normativa UIC"];
+const CABIN_SKILLS=["Atención al cliente","Venta a bordo","Primeros auxilios","Idiomas (EN)","Idiomas (FR)","Gestión de conflictos","Catering","Accesibilidad"];
+const EVENT_DEFS=[
+  {id:"delay",name:"Retraso operativo",sev:"warn",w:0.35},
+  {id:"breakdown",name:"Avería técnica",sev:"danger",w:0.18},
+  {id:"maintenance",name:"Mantenimiento obligatorio",sev:"warn",w:0.14},
+  {id:"weather",name:"Alerta meteorológica",sev:"warn",w:0.16},
+  {id:"strike",name:"Paro parcial",sev:"danger",w:0.07},
+  {id:"demand_boost",name:"Pico de demanda",sev:"ok",w:0.10}
+];
+const state={
+  money:1250000,trains:[],staff:[],trips:[],transactions:[],
+  gameTimeMs:8*3600*1000,speed:1,nextTrainId:1,nextStaffId:1,nextTripId:1,
+  income:0,spentTrains:0,spentEvents:0,totalPax:0,totalKm:0,completedTrips:0,routeStats:{},
+  tripFilter:"all",staffFilter:"all",lastTick:Date.now(),
+  events:[],eventLog:[],eventsEnabled:true,eventRate:"med",
+  dayNightAuto:true,themeForce:"auto",isDay:true,eventCheckAcc:0,_demandBoostUntil:0
+};
+function fmtMoney(n){return "€ "+Math.round(n).toLocaleString("es-ES")}
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function pad(n){return n<10?"0"+n:""+n}
+function generatePerson(role){
+  const nombre=rand(NOMBRES),ap1=rand(APELLIDOS);let ap2=rand(APELLIDOS);while(ap2===ap1)ap2=rand(APELLIDOS);
+  const age=role==="conductor"?randInt(28,58):randInt(22,52);
+  const year=new Date().getFullYear()-age,month=randInt(1,12),day=randInt(1,28);
+  const pool=role==="conductor"?DRIVER_SKILLS:CABIN_SKILLS,skills=[];
+  const n=randInt(2,4);while(skills.length<n){const s=rand(pool);if(!skills.includes(s))skills.push(s)}
+  return{id:state.nextStaffId++,nombre:nombre+" "+ap1+" "+ap2,role,age,birth:pad(day)+"/"+pad(month)+"/"+year,skills,salary:role==="conductor"?28000:22000};
+}
+function getRouteKey(a,b){const k1=a+"-"+b,k2=b+"-"+a;if(ROUTES[k1])return{key:k1,reverse:false};if(ROUTES[k2])return{key:k2,reverse:true};return null}
+function calcDurationMs(km,speedKmh){return(km/speedKmh)*3600*1000}
+function demand(price,capacity,type,boost){const base=type==="AVE"?0.78:0.58;const pf=Math.max(0.12,1-(price-12)/200);const v=0.8+Math.random()*0.4;let d=Math.floor(capacity*base*pf*v);if(boost)d=Math.min(capacity,Math.floor(d*1.35));return Math.min(capacity,Math.max(8,d))}
+function formatDuration(ms){if(ms<0)ms=0;const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;if(h>0)return h+"h "+pad(m)+"m";if(m>0)return m+"m "+pad(sec)+"s";return sec+"s"}
+function statusLabel(s){return{idle:"Libre",scheduled:"Programado",running:"En ruta",arrived:"Completado",broken:"Averiado",maintenance:"Taller"}[s]||s}
+function toast(msg,type){
+  const el=document.createElement("div");el.className="toast";
+  if(type==="danger")el.style.borderColor="var(--red)";
+  if(type==="warn")el.style.borderColor="var(--accent)";
+  el.innerHTML=msg;document.getElementById("toasts").appendChild(el);
+  setTimeout(()=>{el.classList.add("out");setTimeout(()=>el.remove(),300)},4500);
+}
+function updateTheme(){
+  let day;
+  if(state.themeForce==="day")day=true;
+  else if(state.themeForce==="night")day=false;
+  else{const h=Math.floor((state.gameTimeMs%86400000)/3600000);day=h>=7&&h<20}
+  state.isDay=day;
+  document.documentElement.classList.toggle("day",day);
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=day?"#eef2f6":"#0b1118";
+}
+function init(){
+  state.trains.push({id:state.nextTrainId++,type:"regional",name:"Regional R-01",capacity:180,speed:140,status:"idle",location:"Madrid",maint:1800,condition:100});
+  for(let i=0;i<2;i++)state.staff.push(generatePerson("conductor"));
+  for(let i=0;i<3;i++)state.staff.push(generatePerson("cabina"));
+  const cities=Object.keys(CITIES).sort();
+  const selO=document.getElementById("selOrigin"),selD=document.getElementById("selDest");
+  cities.forEach(c=>{selO.innerHTML+='<option value="'+c+'">'+c+'</option>';selD.innerHTML+='<option value="'+c+'">'+c+'</option>'});
+  selO.value="Madrid";selD.value="Toledo";
+  selO.onchange=updateRouteInfo;selD.onchange=updateRouteInfo;
+  document.getElementById("inpPrice").oninput=updateRouteInfo;
+  document.getElementById("selTrain").onchange=updateRouteInfo;
+  document.querySelectorAll("#nav .nav-btn").forEach(btn=>{
+    btn.onclick=()=>{document.querySelectorAll("#nav .nav-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");
+      ["ops","fleet","staff","finance","events","stats","settings"].forEach(t=>{const el=document.getElementById("tab-"+t);if(el)el.classList.toggle("hidden",t!==btn.dataset.tab)})};
+  });
+  document.querySelectorAll("#speedGroup button").forEach(btn=>{
+    btn.onclick=()=>{document.querySelectorAll("#speedGroup button").forEach(b=>b.classList.remove("active"));btn.classList.add("active");state.speed=+btn.dataset.speed};
+  });
+  document.querySelectorAll(".filter-trip").forEach(btn=>{
+    btn.onclick=()=>{document.querySelectorAll(".filter-trip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");state.tripFilter=btn.dataset.filter;renderTrips()};
+  });
+  document.querySelectorAll(".filter-staff").forEach(btn=>{
+    btn.onclick=()=>{document.querySelectorAll(".filter-staff").forEach(b=>b.classList.remove("active"));btn.classList.add("active");state.staffFilter=btn.dataset.role;renderStaff()};
+  });
+  document.getElementById("btnSchedule").onclick=scheduleTrip;
+  document.getElementById("btnHireDriver").onclick=()=>hire("conductor");
+  document.getElementById("btnHireCabin").onclick=()=>hire("cabina");
+  document.getElementById("btnFullscreen").onclick=toggleFullscreen;
+  document.getElementById("togDayNight").onclick=function(){this.dataset.on=this.dataset.on==="1"?"0":"1";this.classList.toggle("on");state.dayNightAuto=this.dataset.on==="1";if(state.dayNightAuto){state.themeForce="auto";document.getElementById("selTheme").value="auto"}updateTheme()};
+  document.getElementById("selTheme").onchange=function(){state.themeForce=this.value;if(this.value!=="auto"){state.dayNightAuto=false;document.getElementById("togDayNight").dataset.on="0";document.getElementById("togDayNight").classList.remove("on")}updateTheme()};
+  document.getElementById("togEvents").onclick=function(){this.dataset.on=this.dataset.on==="1"?"0":"1";this.classList.toggle("on");state.eventsEnabled=this.dataset.on==="1"};
+  document.getElementById("selEventRate").onchange=function(){state.eventRate=this.value};
+  document.getElementById("btnReset").onclick=()=>{if(confirm("¿Reiniciar la partida?"))location.reload()};
+  document.getElementById("btnInstall").onclick=()=>toast("En Chrome/móvil: menú → Añadir a pantalla de inicio / Instalar app.","warn");
+  let deferredPrompt=null;
+  window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("btnInstall").onclick=async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null}}});
+  updateTrainSelect();updateRouteInfo();renderShop();renderFleet();renderStaff();renderTrips();renderFinance();renderStats();renderEvents();updateHeader();updateTheme();
+  resize();requestAnimationFrame(loop);state.lastTick=Date.now();setInterval(gameTick,200);
+  if("serviceWorker" in navigator){const sw="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('fetch',e=>{});";navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:"application/javascript"}))).catch(()=>{})}
+}
+function toggleFullscreen(){
+  if(!document.fullscreenElement){document.documentElement.requestFullscreen?.()||document.documentElement.webkitRequestFullscreen?.();document.getElementById("btnFullscreen").textContent="Salir"}
+  else{document.exitFullscreen?.()||document.webkitExitFullscreen?.();document.getElementById("btnFullscreen").textContent="Activar"}
+}
+function updateRouteInfo(){
+  const o=document.getElementById("selOrigin").value,d=document.getElementById("selDest").value,price=+document.getElementById("inpPrice").value;
+  const info=document.getElementById("routeInfo");
+  if(o===d){info.className="alert alert-w";info.textContent="Origen y destino deben ser diferentes.";info.classList.remove("hidden");return}
+  const r=getRouteKey(o,d);
+  if(!r){info.className="alert alert-w";info.innerHTML="Sin ruta directa. Prueba hub: Madrid, Barcelona, Valencia, Sevilla.";info.classList.remove("hidden");return}
+  const route=ROUTES[r.key],trainId=document.getElementById("selTrain").value,train=state.trains.find(t=>t.id==trainId);
+  const speed=train?train.speed:140,hours=(route.km/speed).toFixed(1),pax=train?demand(price,train.capacity,route.type):0;
+  info.className="alert alert-i";
+  info.innerHTML="<strong>"+route.km+" km</strong> · <span class=\"tag "+(route.type==="AVE"?"tag-ave":"tag-std")+"\">"+route.type+"</span> · ~"+hours+" h<br>Demanda est.: <strong>"+pax+"</strong> pax → ~"+fmtMoney(pax*price)+"<br><span class=\"t-xs\">Paradas: "+route.path.join(" → ")+"</span>";
+  info.classList.remove("hidden");
+}
+function updateTrainSelect(){
+  const sel=document.getElementById("selTrain"),free=state.trains.filter(t=>t.status==="idle");
+  sel.innerHTML=free.length?free.map(t=>'<option value="'+t.id+'">'+t.name+' · '+t.capacity+'p · '+t.speed+'km/h · '+t.location+'</option>').join(""):'<option value="">Sin trenes libres</option>';
+}
+function scheduleTrip(){
+  const o=document.getElementById("selOrigin").value,d=document.getElementById("selDest").value,trainId=+document.getElementById("selTrain").value;
+  const price=+document.getElementById("inpPrice").value,departStr=document.getElementById("inpDepart").value.trim();
+  if(!trainId)return toast("No hay tren disponible.","warn");
+  const r=getRouteKey(o,d);if(!r)return toast("Ruta no disponible.","warn");
+  const drivers=state.staff.filter(s=>s.role==="conductor").length,cabin=state.staff.filter(s=>s.role==="cabina").length;
+  if(drivers<2||cabin<3)return toast("Mínimo 2 conductores y 3 de a bordo.","danger");
+  const train=state.trains.find(t=>t.id===trainId);if(!train||train.status!=="idle")return toast("Tren no disponible.","warn");
+  const route=ROUTES[r.key],path=r.reverse?[...route.path].reverse():[...route.path];
+  let durationMs=calcDurationMs(route.km,train.speed);
+  const boost=state._demandBoostUntil&&state.gameTimeMs<state._demandBoostUntil;
+  const pax=demand(price,train.capacity,route.type,boost);
+  let delayMs=90*1000;
+  const m=departStr.match(/^(\d{1,2}):(\d{2})$/);
+  if(m){const targetMs=(+m[1]*3600+(+m[2])*60)*1000,cur=state.gameTimeMs%86400000;delayMs=targetMs-cur;if(delayMs<30000)delayMs+=86400000}
+  const trip={id:state.nextTripId++,origin:o,dest:d,trainId:train.id,trainName:train.name,price,pax,capacity:train.capacity,path,km:route.km,type:route.type,durationMs,status:"scheduled",progress:0,departGameMs:state.gameTimeMs+delayMs,startGameMs:null,endGameMs:null,revenue:pax*price,delayFactor:1};
+  state.trips.push(trip);train.status="scheduled";train.tripId=trip.id;
+  renderTrips();updateTrainSelect();updateRouteInfo();addTx(0,"Prog. "+o+"→"+d+" ("+train.name+")");
+  toast("Viaje programado: "+o+" → "+d);
+}
+function renderShop(){
+  document.getElementById("shopList").innerHTML=TRAIN_TYPES.map(tt=>'<div class="card"><div class="flex-b"><div><div class="card-t">'+tt.name+'</div><div class="card-m">'+tt.capacity+' pax · '+tt.speed+' km/h · Mant. '+fmtMoney(tt.maint)+'/mes</div></div><button class="btn btn-sm" onclick="buyTrain(\''+tt.id+'\')" '+(state.money<tt.price?'disabled':'')+'>'+fmtMoney(tt.price)+'</button></div></div>').join("");
+}
+window.buyTrain=function(typeId){
+  const tt=TRAIN_TYPES.find(t=>t.id===typeId);if(!tt||state.money<tt.price)return;
+  state.money-=tt.price;state.spentTrains+=tt.price;
+  const n=state.trains.filter(t=>t.type===typeId).length+1;
+  const prefix={regional:"Regional R",intercity:"Intercity IC",ave:"AVE","ave-plus":"AVE-P"}[typeId];
+  state.trains.push({id:state.nextTrainId++,type:typeId,name:prefix+"-"+String(n).padStart(2,"0"),capacity:tt.capacity,speed:tt.speed,status:"idle",location:"Madrid",maint:tt.maint,condition:100});
+  addTx(-tt.price,"Compra "+prefix+"-"+String(n).padStart(2,"0"));
+  updateHeader();renderShop();renderFleet();updateTrainSelect();renderFinance();toast("Adquirido "+prefix+"-"+String(n).padStart(2,"0"));
+};
+function renderFleet(){
+  document.getElementById("fleetCount").textContent=state.trains.length;
+  document.getElementById("fleetList").innerHTML=state.trains.map(t=>'<div class="card"><div class="flex-b"><div class="card-t">'+t.name+'</div><span class="badge">'+statusLabel(t.status)+'</span></div><div class="card-m mt6">'+t.capacity+' pax · '+t.speed+' km/h · '+(t.location||"—")+' · Cond. '+(t.condition|0)+'%</div>'+(t.status==="broken"||t.status==="maintenance"?'<button class="btn btn-sm mt6" onclick="repairTrain('+t.id+')">Reparar</button>':'')+'</div>').join("");
+}
+window.repairTrain=function(id){
+  const t=state.trains.find(x=>x.id===id);if(!t)return;
+  const cost=8000+randInt(0,15000);
+  if(state.money<cost)return toast("Fondos insuficientes.","danger");
+  state.money-=cost;state.spentEvents+=cost;t.status="idle";t.condition=100;t.tripId=null;
+  addTx(-cost,"Reparación "+t.name);updateHeader();renderFleet();updateTrainSelect();renderFinance();renderEvents();
+  toast(t.name+" reparado y listo.");
+};
+function hire(role){
+  const p=generatePerson(role);state.staff.push(p);
+  document.getElementById("hireMsg").innerHTML='<div class="alert alert-s">Contratado: <strong>'+p.nombre+'</strong> ('+p.age+' a., nac. '+p.birth+')<br>'+p.skills.map(s=>'<span class="tag tag-s">'+s+'</span>').join("")+'</div>';
+  renderStaff();renderFinance();updateHeader();
+}
+function renderStaff(){
+  document.getElementById("staffCount").textContent=state.staff.length;
+  let list=state.staff;if(state.staffFilter!=="all")list=list.filter(s=>s.role===state.staffFilter);
+  document.getElementById("staffList").innerHTML=list.map(s=>'<div class="card"><div class="card-t">'+s.nombre+'</div><div class="card-m"><span class="tag '+(s.role==="conductor"?"tag-d":"tag-c")+'">'+(s.role==="conductor"?"Conductor":"A bordo")+'</span> '+s.age+' a. · Nac. '+s.birth+' · '+fmtMoney(s.salary)+'/año</div><div class="mt6 t-sm">'+s.skills.map(sk=>'<span class="tag tag-s">'+sk+'</span>').join("")+'</div></div>').join("")||'<div class="t-mut t-sm">Sin personal</div>';
+}
+function renderTrips(){
+  let list=state.trips.slice().reverse();if(state.tripFilter!=="all")list=list.filter(t=>t.status===state.tripFilter);
+  if(!list.length){document.getElementById("tripsList").innerHTML='<div class="t-mut t-sm">Ningún viaje aquí.</div>';return}
+  document.getElementById("tripsList").innerHTML=list.map(tr=>{
+    const pct=Math.min(100,Math.floor(tr.progress*100));let st="";
+    if(tr.status==="scheduled")st="Sale en "+formatDuration(Math.max(0,tr.departGameMs-state.gameTimeMs));
+    else if(tr.status==="running")st="En ruta · "+pct+"% · Llega "+formatDuration(Math.max(0,tr.endGameMs-state.gameTimeMs));
+    else if(tr.status==="arrived")st='<span class="t-g">Hecho · +'+fmtMoney(tr.revenue)+'</span>';
+    else st=statusLabel(tr.status);
+    return '<div class="card"><div class="flex-b"><div class="card-t">'+tr.origin+' → '+tr.dest+'</div><span class="t-xs t-mut">'+tr.trainName+'</span></div><div class="card-m mt6">'+tr.pax+'/'+tr.capacity+' pax · '+tr.price+'€ · '+tr.km+'km · <span class="tag '+(tr.type==="AVE"?"tag-ave":"tag-std")+'">'+tr.type+'</span>'+(tr.delayFactor>1?' <span class="tag tag-ev">Retraso</span>':'')+'</div><div class="pax-bar"><i style="width:'+(tr.pax/tr.capacity*100)+'%"></i></div><div class="t-sm mt6">'+st+'</div>'+(tr.status==="running"?'<div class="bar"><i style="width:'+pct+'%"></i></div>':'')+'</div>';
+  }).join("");
+}
+function tryRandomEvent(){
+  if(!state.eventsEnabled)return;
+  const rates={low:0.0008,med:0.0022,high:0.005};
+  if(Math.random()>rates[state.eventRate])return;
+  const pool=[];EVENT_DEFS.forEach(d=>{for(let i=0;i<Math.round(d.w*20);i++)pool.push(d)});
+  const def=rand(pool);
+  const running=state.trips.filter(t=>t.status==="running");
+  const idle=state.trains.filter(t=>t.status==="idle"||t.status==="scheduled");
+  if(def.id==="delay"||def.id==="weather"){
+    if(!running.length)return;
+    const tr=rand(running);
+    const factor=def.id==="delay"?1.12+Math.random()*0.3:1.18+Math.random()*0.28;
+    tr.delayFactor=(tr.delayFactor||1)*factor;
+    const extra=tr.durationMs*(factor-1);tr.endGameMs+=extra;tr.durationMs+=extra;
+    logEvent(def,tr.trainName+" en "+tr.origin+"→"+tr.dest+": +"+formatDuration(extra));
+    toast("<strong>"+def.name+"</strong><br>"+tr.trainName+": retraso "+formatDuration(extra),"warn");
+  }else if(def.id==="breakdown"||def.id==="maintenance"){
+    const cand=idle.length?idle:state.trains.filter(t=>t.status!=="broken"&&t.status!=="running");
+    if(!cand.length)return;
+    const t=rand(cand);
+    t.status=def.id==="breakdown"?"broken":"maintenance";
+    t.condition=def.id==="breakdown"?randInt(15,45):randInt(40,70);
+    logEvent(def,t.name+" · "+statusLabel(t.status));
+    toast("<strong>"+def.name+"</strong><br>"+t.name+" requiere atención","danger");
+    renderFleet();updateTrainSelect();
+  }else if(def.id==="strike"){
+    const cost=randInt(5000,20000);state.money-=cost;state.spentEvents+=cost;
+    addTx(-cost,def.name);logEvent(def,"Impacto "+fmtMoney(cost));
+    toast("<strong>"+def.name+"</strong><br>Coste: "+fmtMoney(cost),"danger");updateHeader();
+  }else if(def.id==="demand_boost"){
+    state._demandBoostUntil=state.gameTimeMs+2*3600*1000;
+    logEvent(def,"Mayor ocupación ~2 h de juego");
+    toast("<strong>"+def.name+"</strong><br>Más pasajeros en próximos viajes");
+  }
+}
+function logEvent(def,detail){
+  const e={id:Date.now(),name:def.name,detail,time:state.gameTimeMs,type:def.id};
+  state.eventLog.unshift(e);if(state.eventLog.length>40)state.eventLog.pop();
+  state.events.unshift(e);if(state.events.length>8)state.events.pop();
+  renderEvents();renderStats();
+}
+function renderEvents(){
+  const act=document.getElementById("activeEvents");
+  const broken=state.trains.filter(t=>t.status==="broken"||t.status==="maintenance");
+  if(!state.events.length&&!broken.length){act.innerHTML='<div class="t-mut t-sm">Sin eventos activos.</div>'}
+  else{
+    let h="";
+    broken.forEach(t=>{h+='<div class="card"><div class="card-t">'+t.name+'</div><div class="card-m"><span class="tag tag-ev">'+statusLabel(t.status)+'</span> Cond. '+t.condition+'%</div><button class="btn btn-sm mt6" onclick="repairTrain('+t.id+')">Reparar</button></div>'});
+    state.events.slice(0,5).forEach(e=>{h+='<div class="card"><div class="card-t">'+e.name+'</div><div class="card-m">'+e.detail+'</div></div>'});
+    act.innerHTML=h;
+  }
+  document.getElementById("eventLog").innerHTML=state.eventLog.slice(0,12).map(e=>'<div class="card"><div class="card-t">'+e.name+'</div><div class="card-m t-xs">'+e.detail+'</div></div>').join("")||'<div class="t-mut t-sm">Sin historial.</div>';
+}
+function addTx(amount,desc){
+  state.transactions.unshift({amount,desc,time:state.gameTimeMs});if(state.transactions.length>40)state.transactions.pop();
+  if(amount>0)state.income+=amount;renderFinance();
+}
+function renderFinance(){
+  const monthlySal=state.staff.reduce((a,s)=>a+s.salary/12,0),monthlyMaint=state.trains.reduce((a,t)=>a+(t.maint||1800),0);
+  document.getElementById("finIncome").textContent=fmtMoney(state.income);
+  document.getElementById("finTrains").textContent=fmtMoney(state.spentTrains);
+  document.getElementById("finSalaries").textContent=fmtMoney(monthlySal);
+  document.getElementById("finMaint").textContent=fmtMoney(monthlyMaint);
+  document.getElementById("finEvents").textContent=fmtMoney(state.spentEvents);
+  const net=state.income-monthlySal-monthlyMaint-state.spentTrains-state.spentEvents;
+  document.getElementById("finNet").textContent=fmtMoney(net);
+  document.getElementById("finNet").className=net>=0?"t-g":"t-r";
+  document.getElementById("txList").innerHTML=state.transactions.slice(0,14).map(tx=>'<div class="card"><div class="flex-b"><span class="t-sm">'+tx.desc+'</span><span class="'+(tx.amount>=0?"t-g":"t-r")+' t-sm">'+(tx.amount>=0?"+":"")+fmtMoney(tx.amount)+'</span></div></div>').join("")||'<div class="t-mut t-sm">Sin movimientos</div>';
+}
+function renderStats(){
+  document.getElementById("stTrips").textContent=state.completedTrips;
+  document.getElementById("stPax").textContent=state.totalPax.toLocaleString("es-ES");
+  document.getElementById("stKm").textContent=Math.round(state.totalKm).toLocaleString("es-ES")+" km";
+  document.getElementById("stAvg").textContent=state.completedTrips?fmtMoney(state.income/state.completedTrips):"€ 0";
+  const arrived=state.trips.filter(t=>t.status==="arrived");
+  const occ=arrived.length?Math.round((state.totalPax/arrived.reduce((a,t)=>a+t.capacity,0))*100):0;
+  document.getElementById("stOcc").textContent=(isNaN(occ)?0:occ)+"%";
+  document.getElementById("stEvents").textContent=state.eventLog.length;
+  const routes=Object.entries(state.routeStats).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById("topRoutes").innerHTML=routes.length?routes.map(([k,v])=>'<div class="card flex-b"><span class="t-sm">'+k+'</span><strong>'+v+'</strong></div>').join(""):'<div class="t-mut t-sm">Sin datos aún</div>';
+}
+function updateHeader(){
+  document.getElementById("moneyDisplay").textContent=fmtMoney(state.money);
+  document.getElementById("countsDisplay").textContent=state.trains.length+" / "+state.staff.length;
+}
+function updateClock(){
+  const dayMs=state.gameTimeMs%86400000,h=Math.floor(dayMs/3600000),m=Math.floor((dayMs%3600000)/60000);
+  document.getElementById("gameClock").textContent=pad(h)+":"+pad(m);
+}
+function gameTick(){
+  const now=Date.now(),realDelta=now-state.lastTick;state.lastTick=now;
+  state.gameTimeMs+=realDelta*state.speed;updateClock();updateTheme();
+  state.eventCheckAcc+=realDelta*state.speed;
+  if(state.eventCheckAcc>4000){state.eventCheckAcc=0;tryRandomEvent()}
+  let changed=false;
+  state.trips.forEach(tr=>{
+    if(tr.status==="scheduled"&&state.gameTimeMs>=tr.departGameMs){
+      tr.status="running";tr.startGameMs=state.gameTimeMs;tr.endGameMs=state.gameTimeMs+tr.durationMs;
+      const train=state.trains.find(t=>t.id===tr.trainId);if(train)train.status="running";changed=true;
+    }
+    if(tr.status==="running"){
+      const elapsed=state.gameTimeMs-tr.startGameMs;tr.progress=Math.min(1,elapsed/tr.durationMs);
+      if(tr.progress>=1){
+        tr.status="arrived";tr.progress=1;
+        let rev=tr.revenue;
+        if(state._demandBoostUntil&&state.gameTimeMs<state._demandBoostUntil)rev=Math.floor(rev*1.2);
+        state.money+=rev;state.totalPax+=tr.pax;state.totalKm+=tr.km;state.completedTrips++;
+        const rk=tr.origin+" → "+tr.dest;state.routeStats[rk]=(state.routeStats[rk]||0)+1;
+        addTx(rev,"Ingresos "+tr.origin+"→"+tr.dest+" ("+tr.pax+"p)");
+        const train=state.trains.find(t=>t.id===tr.trainId);
+        if(train){train.status="idle";train.location=tr.dest;train.tripId=null;train.condition=Math.max(20,(train.condition||100)-randInt(1,4))}
+        changed=true;renderStats();
+      }
+    }
+  });
+  if(changed){renderTrips();renderFleet();updateTrainSelect();updateHeader()}
+  else if(state.trips.some(t=>t.status==="running"||t.status==="scheduled"))renderTrips();
+}
+const canvas=document.getElementById("mapCanvas"),ctx=canvas.getContext("2d");
+let W=0,H=0,dpr=1;
+function resize(){const panel=canvas.parentElement;W=panel.clientWidth;H=panel.clientHeight;dpr=devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0)}
+window.addEventListener("resize",()=>resize());
+function cityPos(name){const c=CITIES[name];if(!c)return{x:W/2,y:H/2};return{x:c.x*W,y:c.y*H}}
+function drawOutline(pts,fill){ctx.beginPath();ctx.moveTo(pts[0][0]*W,pts[0][1]*H);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0]*W,pts[i][1]*H);ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
+function drawMap(){
+  if(!W)return;const day=state.isDay;ctx.clearRect(0,0,W,H);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  if(day){g.addColorStop(0,"#b8d0e4");g.addColorStop(1,"#9cbcce")}else{g.addColorStop(0,"#0a1625");g.addColorStop(1,"#060e16")}
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  drawOutline(SPAIN_OUTLINE,day?"#d4e0cc":"#122030");
+  drawOutline(PORTUGAL_CUT,day?"#b8c8b8":"#0c1824");
+  Object.values(ROUTES).forEach(route=>{
+    const pts=route.path.map(cityPos);ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle=route.type==="AVE"?(day?"rgba(180,130,0,.55)":"rgba(232,185,35,.5)"):(day?"rgba(60,100,140,.35)":"rgba(140,170,200,.28)");
+    ctx.lineWidth=route.type==="AVE"?2.4:1.4;ctx.stroke();
+  });
+  Object.entries(CITIES).forEach(([name,c])=>{
+    const p=cityPos(name);ctx.beginPath();ctx.arc(p.x,p.y,c.hub?6:3.5,0,Math.PI*2);
+    ctx.fillStyle=c.hub?(day?"#c49200":"#e8b923"):(day?"#4a6a88":"#6a8aa8");ctx.fill();
+    if(c.hub){ctx.strokeStyle=day?"#1a2332":"#fff";ctx.lineWidth=1.5;ctx.stroke()}
+    ctx.fillStyle=day?"#2a3a4a":"#9ab0c8";ctx.font=(c.hub?11:9)+"px sans-serif";ctx.textAlign="center";
+    ctx.fillText(name,p.x,p.y-(c.hub?12:9));
+  });
+  state.trips.forEach(tr=>{
+    if(tr.status!=="running")return;const path=tr.path.map(cityPos);if(path.length<2)return;
+    const totalSegs=path.length-1,pos=tr.progress*totalSegs,seg=Math.min(Math.floor(pos),totalSegs-1),t=pos-seg;
+    const x=path[seg].x+(path[seg+1].x-path[seg].x)*t,y=path[seg].y+(path[seg+1].y-path[seg].y)*t;
+    ctx.beginPath();ctx.arc(x,y,12,0,Math.PI*2);ctx.fillStyle=day?"rgba(196,146,0,.2)":"rgba(232,185,35,.22)";ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,6.5,0,Math.PI*2);ctx.fillStyle=day?"#c49200":"#e8b923";ctx.fill();
+    ctx.strokeStyle=day?"#1a2332":"#fff";ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=day?"#1a2332":"#fff";ctx.font="10px sans-serif";ctx.textAlign="left";
+    ctx.fillText(tr.trainName+" ("+tr.pax+")",x+12,y+3);
+  });
+  const running=state.trips.filter(t=>t.status==="running"),scheduled=state.trips.filter(t=>t.status==="scheduled");
+  const ov=document.getElementById("hud-float");
+  if(running.length||scheduled.length){
+    let html="";
+    running.forEach(tr=>{const left=formatDuration(tr.endGameMs-state.gameTimeMs);
+      html+='<div class="mb8"><strong class="t-a">'+tr.trainName+'</strong>'+(tr.delayFactor>1?' <span class="tag tag-ev">retraso</span>':'')+'<br>'+tr.origin+' → '+tr.dest+'<br>'+Math.floor(tr.progress*100)+'% · Llega en '+left+'<br>'+tr.pax+' pasajeros</div>'});
+    if(scheduled.length)html+='<div class="t-xs t-mut">'+scheduled.length+' programado(s)</div>';
+    ov.innerHTML=html;
+  }else ov.innerHTML='<div class="t-sm t-mut">Ningún tren en circulación.<br>Programa un viaje en el panel.<br><br><span class="t-xs">Madrid → Toledo es corto. Usa 60× / 300×.</span></div>';
+}
+function loop(){drawMap();requestAnimationFrame(loop)}
+init();
+</script>
+</body>
+</html>

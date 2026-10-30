@@ -1,0 +1,19 @@
+{
+  "name": "Railiberia — Gestión ferroviaria",
+  "short_name": "Railiberia",
+  "description": "Simulador de empresa de trenes en la península ibérica en tiempo real",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1118",
+  "theme_color": "#0b1118",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect fill='%230b1118' width='64' height='64' rx='12'/%3E%3Cpath fill='%23e8b923' d='M12 40h40v6H12zm4-8h8v8h-8zm12 0h8v8h-8zm12 0h8v8h-8z'/%3E%3Cpath fill='%23e8eef5' d='M18 22h28l4 10H14z'/%3E%3Ccircle fill='%23e8b923' cx='22' cy='46' r='4'/%3E%3Ccircle fill='%23e8b923' cx='42' cy='46' r='4'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
